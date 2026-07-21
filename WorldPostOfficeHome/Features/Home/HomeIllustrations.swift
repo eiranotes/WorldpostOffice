@@ -1,48 +1,80 @@
 import SwiftUI
 
+private struct HomeAssetImage: View {
+    let name: String
+    var contentMode: ContentMode = .fit
+
+    var body: some View {
+        Image(name)
+            .resizable()
+            .interpolation(.high)
+            .antialiased(true)
+            .aspectRatio(contentMode: contentMode)
+            .accessibilityHidden(true)
+    }
+}
+
 struct CatAvatarArt: View {
     var body: some View {
-        ZStack {
-            Circle().fill(AppColor.surfaceWarm)
-            Circle().stroke(AppColor.coral.opacity(0.35), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-            VStack(spacing: -4) {
-                Text("🐱").font(.system(size: 38))
-                Text("✉️").font(.system(size: 15))
-            }
-        }
-        .accessibilityHidden(true)
+        HomeAssetImage(name: "ProfileCatAvatar")
     }
 }
 
 struct BunnyAvatarArt: View {
     var body: some View {
-        ZStack {
-            Circle().fill(AppColor.surfaceBlue)
-            Circle().stroke(AppColor.border, lineWidth: 1)
-            Text("🐰").font(.system(size: 39))
-        }
-        .accessibilityHidden(true)
+        HomeAssetImage(name: "TravelerRabbitAvatar")
     }
 }
 
 struct MascotSceneArt: View {
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Capsule()
-                .fill(AppColor.mint.opacity(0.12))
-                .frame(width: 210, height: 60)
-                .offset(y: 12)
-            HStack(alignment: .bottom, spacing: 7) {
-                VStack(spacing: -6) {
-                    Text("☁️").font(.system(size: 22))
-                    Text("🌿").font(.system(size: 30))
+        GeometryReader { proxy in
+            let size = proxy.size
+
+            ZStack(alignment: .bottomTrailing) {
+                HStack(alignment: .bottom, spacing: -8) {
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .fill(index == 1 ? AppColor.mint.opacity(0.20) : AppColor.gold.opacity(0.12))
+                            .frame(width: size.width * (index == 1 ? 0.32 : 0.25))
+                    }
                 }
-                Text("🐱").font(.system(size: 72))
-                VStack(spacing: -5) {
-                    Text("🏤").font(.system(size: 54))
-                    Text("📮").font(.system(size: 27))
-                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .offset(y: size.height * 0.16)
+
+                RoundedRectangle(cornerRadius: size.width * 0.035, style: .continuous)
+                    .fill(AppColor.surfaceWarm.opacity(0.92))
+                    .frame(width: size.width * 0.28, height: size.height * 0.43)
+                    .overlay(alignment: .top) {
+                        UnevenRoundedRectangle(
+                            cornerRadii: .init(
+                                topLeading: size.width * 0.04,
+                                bottomLeading: 0,
+                                bottomTrailing: 0,
+                                topTrailing: size.width * 0.04
+                            )
+                        )
+                        .fill(AppColor.coral.opacity(0.72))
+                        .frame(height: size.height * 0.12)
+                        .offset(y: -size.height * 0.06)
+                    }
+                    .overlay {
+                        Image(systemName: "envelope.fill")
+                            .font(.system(size: max(10, size.width * 0.07), weight: .bold))
+                            .foregroundStyle(AppColor.coral)
+                    }
+                    .offset(x: -size.width * 0.03, y: size.height * 0.10)
+
+                HomeAssetImage(name: "MascotPostman")
+                    .frame(width: size.width * 0.58, height: size.height * 1.05)
+                    .offset(x: -size.width * 0.28, y: size.height * 0.03)
+
+                HomeAssetImage(name: "HeartEnvelope")
+                    .frame(width: size.width * 0.20, height: size.width * 0.20)
+                    .offset(x: -size.width * 0.68, y: -size.height * 0.50)
             }
+            .frame(width: size.width, height: size.height)
+            .clipped()
         }
         .accessibilityHidden(true)
     }
@@ -50,65 +82,12 @@ struct MascotSceneArt: View {
 
 struct PlantPolaroidArt: View {
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottom) {
-                LinearGradient(
-                    colors: [Color(red: 0.91, green: 0.96, blue: 0.89), Color(red: 0.98, green: 0.89, blue: 0.72)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.white.opacity(0.45))
-                    .frame(width: 38, height: 98)
-                    .offset(x: 37, y: -5)
-                Text("🪴")
-                    .font(.system(size: 72))
-                    .offset(y: 2)
-            }
-            .frame(height: 116)
-            Text("TODAY'S GREEN")
-                .font(.system(size: 8, weight: .bold, design: .rounded))
-                .foregroundStyle(AppColor.secondaryInk)
-                .frame(maxWidth: .infinity)
-                .frame(height: 24)
-                .background(Color.white)
-        }
-        .padding(7)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppColor.border.opacity(0.7), lineWidth: 1))
-        .accessibilityHidden(true)
+        HomeAssetImage(name: "PlantPolaroid")
     }
 }
 
 struct TokyoPostcardArt: View {
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.72, green: 0.88, blue: 1.0), Color(red: 1.0, green: 0.78, blue: 0.82)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            VStack(spacing: -5) {
-                Text("🗻").font(.system(size: 40))
-                HStack(spacing: 4) {
-                    Text("🌸").font(.system(size: 23))
-                    Text("🗼").font(.system(size: 39))
-                    Text("🌸").font(.system(size: 23))
-                }
-            }
-            VStack {
-                HStack {
-                    Spacer()
-                    Text("JAPAN")
-                        .font(.system(size: 7, weight: .bold, design: .rounded))
-                        .padding(4)
-                        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 3))
-                }
-                Spacer()
-            }
-            .padding(6)
-        }
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white, lineWidth: 4))
-        .accessibilityHidden(true)
+        HomeAssetImage(name: "TokyoPostcard")
     }
 }
