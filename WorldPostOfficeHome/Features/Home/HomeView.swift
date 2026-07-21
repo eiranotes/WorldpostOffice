@@ -8,8 +8,8 @@ struct HomeView: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 16) {
-                    UserHeaderView()
-                    GreetingBanner()
+                    ResponsiveUserHeaderView()
+                    ResponsiveGreetingBanner()
                     PrimaryQuestCard()
                     EnergyProgressCard()
                     ActiveExchangeCard()
