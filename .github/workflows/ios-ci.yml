@@ -1,0 +1,171 @@
+name: iOS Build and Test
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      PROJECT: WorldPostOfficeHome.xcodeproj
+      SCHEME: WorldPostOfficeHome
+      DERIVED_DATA: DerivedData
+      RESULT_BUNDLE: TestResults.xcresult
+      BUNDLE_ID: com.eiraworks.WorldPostOfficeHome
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Print Xcode environment
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+          xcrun simctl list runtimes
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project and shared scheme
+        run: |
+          xcodegen generate
+          xcodebuild -list -project "$PROJECT"
+          test -f "$PROJECT/xcshareddata/xcschemes/$SCHEME.xcscheme"
+
+      - name: Resolve available iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          UDID=$(python3 <<'PY'
+          import json
+          import subprocess
+
+          data = json.loads(subprocess.check_output([
+              "xcrun", "simctl", "list", "devices", "available", "-j"
+          ]))
+          preferred = [
+              "iPhone 16 Pro",
+              "iPhone 16",
+              "iPhone 15 Pro",
+              "iPhone 15",
+              "iPhone 14 Pro",
+          ]
+          phones = []
+          for _, devices in data.get("devices", {}).items():
+              for device in devices:
+                  if device.get("isAvailable") and device.get("name", "").startswith("iPhone"):
+                      phones.append(device)
+          for name in preferred:
+              for device in phones:
+                  if device.get("name") == name:
+                      print(device["udid"])
+                      raise SystemExit
+          if not phones:
+              raise SystemExit("No available iPhone simulator found")
+          print(phones[0]["udid"])
+          PY
+          )
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator: $UDID"
+
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build | tee build.log
+
+      - name: Boot simulator
+        env:
+          UDID: ${{ steps.simulator.outputs.udid }}
+        run: |
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl ui "$UDID" appearance light
+          xcrun simctl status_bar "$UDID" override \
+            --time 9:41 \
+            --batteryState charged \
+            --batteryLevel 100 \
+            --wifiBars 3 \
+            --cellularBars 4 || true
+
+      - name: Run unit and UI tests
+        env:
+          UDID: ${{ steps.simulator.outputs.udid }}
+        run: |
+          set -o pipefail
+          rm -rf "$RESULT_BUNDLE"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            CODE_SIGNING_ALLOWED=NO \
+            test | tee test.log
+
+      - name: Capture deterministic home screenshot
+        if: always()
+        env:
+          UDID: ${{ steps.simulator.outputs.udid }}
+        run: |
+          set -euo pipefail
+          mkdir -p Screenshots
+          APP_PATH=$(find "$DERIVED_DATA/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name 'WorldPostOfficeHome.app' -print -quit)
+          if [[ -z "$APP_PATH" ]]; then
+            echo "App bundle not found; screenshot capture skipped." | tee screenshot.log
+            exit 0
+          fi
+          xcrun simctl install "$UDID" "$APP_PATH"
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" \
+            -AppleLanguages '(ko)' \
+            -AppleLocale ko_KR | tee screenshot.log
+          sleep 3
+          xcrun simctl io "$UDID" screenshot Screenshots/home.png
+
+      - name: Export test summary
+        if: always()
+        run: |
+          if [[ -d "$RESULT_BUNDLE" ]]; then
+            xcrun xcresulttool get test-results summary \
+              --path "$RESULT_BUNDLE" \
+              --format json > test-summary.json || true
+          fi
+
+      - name: Upload Xcode diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-diagnostics
+          path: |
+            build.log
+            test.log
+            screenshot.log
+            test-summary.json
+            TestResults.xcresult
+            Screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
