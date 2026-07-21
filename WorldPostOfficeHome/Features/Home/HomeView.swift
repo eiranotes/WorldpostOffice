@@ -7,7 +7,7 @@ struct HomeView: View {
                 .ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 16) {
+                LazyVStack(spacing: 12) {
                     ResponsiveUserHeaderView()
                     ResponsiveGreetingBanner()
                     PrimaryQuestCard()
@@ -16,9 +16,10 @@ struct HomeView: View {
                     QuickActionsRow()
                 }
                 .padding(.horizontal, AppMetric.screenHorizontal)
-                .padding(.top, 10)
-                .padding(.bottom, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 14)
             }
+            .scrollBounceBehavior(.basedOnSize)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             BottomTabBar()
