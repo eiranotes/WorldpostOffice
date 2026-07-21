@@ -1,0 +1,72 @@
+name: WorldPostOfficeHome
+options:
+  bundleIdPrefix: com.eiraworks
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: 5.0
+
+targets:
+  WorldPostOfficeHome:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: WorldPostOfficeHome
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eiraworks.WorldPostOfficeHome
+        PRODUCT_NAME: WorldPostOfficeHome
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: World Post Office
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+
+  WorldPostOfficeHomeTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: WorldPostOfficeHomeTests
+    dependencies:
+      - target: WorldPostOfficeHome
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eiraworks.WorldPostOfficeHomeTests
+        GENERATE_INFOPLIST_FILE: YES
+
+  WorldPostOfficeHomeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: WorldPostOfficeHomeUITests
+    dependencies:
+      - target: WorldPostOfficeHome
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eiraworks.WorldPostOfficeHomeUITests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: WorldPostOfficeHome
+
+schemes:
+  WorldPostOfficeHome:
+    build:
+      targets:
+        WorldPostOfficeHome: all
+        WorldPostOfficeHomeTests: [test]
+        WorldPostOfficeHomeUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - name: WorldPostOfficeHomeTests
+          parallelizable: true
+        - name: WorldPostOfficeHomeUITests
+          parallelizable: false
+    archive:
+      config: Release
