@@ -1,0 +1,113 @@
+name: Materialize actual design images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/materialize-actual-images.yml'
+      - 'AssetSources/GeneratedAssetsHQ.zip.b64'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: ${{ !contains(github.event.head_commit.message, '[materialized-assets]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decode generated assets into actual image files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import base64
+          import io
+          import json
+          from pathlib import Path
+          import zipfile
+
+          root = Path('.')
+          encoded = root / 'AssetSources' / 'GeneratedAssetsHQ.zip.b64'
+          if not encoded.exists():
+              raise SystemExit('Encoded source bundle is missing')
+
+          text = ''.join(encoded.read_text(encoding='utf-8').split())
+          raw = base64.b64decode(text, validate=True)
+          if not raw.startswith(b'PK'):
+              raise SystemExit('Decoded source is not a ZIP archive')
+
+          expected = [
+              'BunnyAvatar', 'EnergyStamp', 'HeartEnvelope', 'HeroScene',
+              'PlantPolaroid', 'ProfileCatAvatar', 'QuickChecklist',
+              'QuickGift', 'QuickShop', 'QuickStampAlbum', 'TokyoPostcard'
+          ]
+          app_dir = root / 'DesignAssets' / 'Generated' / 'App'
+          catalog = root / 'WorldPostOfficeHome' / 'Assets.xcassets'
+          app_dir.mkdir(parents=True, exist_ok=True)
+          catalog.mkdir(parents=True, exist_ok=True)
+          (catalog / 'Contents.json').write_text(json.dumps({
+              'info': {'author': 'xcode', 'version': 1}
+          }, indent=2) + '\n', encoding='utf-8')
+
+          with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+              members = {Path(name).stem: name for name in archive.namelist() if name.lower().endswith('.png')}
+              missing = [name for name in expected if name not in members]
+              if missing:
+                  raise SystemExit('Missing generated images: ' + ', '.join(missing))
+
+              for name in expected:
+                  data = archive.read(members[name])
+                  if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+                      raise SystemExit(f'{name} is not a PNG')
+                  (app_dir / f'{name}.png').write_bytes(data)
+                  imageset = catalog / f'{name}.imageset'
+                  imageset.mkdir(parents=True, exist_ok=True)
+                  (imageset / f'{name}.png').write_bytes(data)
+                  (imageset / 'Contents.json').write_text(json.dumps({
+                      'images': [{
+                          'filename': f'{name}.png',
+                          'idiom': 'universal',
+                          'scale': '1x'
+                      }],
+                      'info': {'author': 'xcode', 'version': 1}
+                  }, indent=2) + '\n', encoding='utf-8')
+
+          manifest = {
+              'reference': 'DesignAssets/References/HomeReference.webp',
+              'assets': [f'DesignAssets/Generated/App/{name}.png' for name in expected]
+          }
+          (root / 'DesignAssets' / 'manifest.json').write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8'
+          )
+          PY
+
+      - name: Remove encoded staging files and accidental markers
+        shell: bash
+        run: |
+          rm -f AssetSources/GeneratedAssetsHQ.zip.b64
+          rm -f AssetSources/GeneratedAssetsHQ.zip.b64.part*
+          rm -f AssetSources/*.png.b64 AssetSources/*.png.b64.part*
+          rm -f AssetSources/DirectBinaryPlan.md AssetSources/README_BINARY_UPLOAD.txt
+          rm -f WorldPostOfficeHome/Assets.xcassets/ProfileCatAvatar.imageset/ProfileCatAvatar.png.b64
+          rm -f noop2.txt temp_marker.txt temp_test.txt temp_test2.txt temp_test3.txt temp_test4.txt temp_test5.txt
+
+      - name: Commit actual images
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No image changes to commit.'
+            exit 0
+          fi
+          git commit -m '[materialized-assets] add actual generated images and reference'
+          git push origin HEAD:main
