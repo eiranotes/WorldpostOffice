@@ -4,53 +4,83 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE="$ROOT/AssetSources"
 CATALOG="$ROOT/WorldPostOfficeHome/Assets.xcassets"
-PACK="$SOURCE/generated-home-assets.json"
+RAW_DIR="$(mktemp -d)"
+trap 'rm -rf "$RAW_DIR"' EXIT
 
-python3 - "$SOURCE" "$PACK" "$CATALOG" <<'PY'
+ASSETS=(
+  HeartEnvelope
+  MascotPostman
+  PlantPolaroid
+  ProfileCatAvatar
+  TokyoPostcard
+  TravelerRabbitAvatar
+)
+
+rm -rf "$CATALOG"
+mkdir -p "$CATALOG"
+cat > "$CATALOG/Contents.json" <<'JSON'
+{
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+JSON
+
+normalize_arguments=()
+for asset in "${ASSETS[@]}"; do
+  setdir="$CATALOG/${asset}.imageset"
+  raw_output="$RAW_DIR/${asset}.png"
+  normalized_output="$setdir/${asset}.png"
+  mkdir -p "$setdir"
+
+  python3 - "$SOURCE" "$asset" "$raw_output" <<'PY'
 import base64
-import json
 from pathlib import Path
-import shutil
 import sys
 
-source = Path(sys.argv[1])
-pack = Path(sys.argv[2])
-catalog = Path(sys.argv[3])
-parts = sorted(source.glob("generated-home-assets.json.part*"))
-if not parts:
-    raise SystemExit("Generated home asset pack parts are missing")
-text = "".join(part.read_text(encoding="utf-8") for part in parts)
-data = json.loads(text)
-expected = {
-    "ProfileCatAvatar", "HeroScene", "PlantPolaroid", "EnergyStamp",
-    "BunnyAvatar", "HeartEnvelope", "TokyoPostcard", "QuickChecklist",
-    "QuickStampAlbum", "QuickGift", "QuickShop"
-}
-missing = expected.difference(data)
-if missing:
-    raise SystemExit(f"Missing generated assets: {sorted(missing)}")
-if catalog.exists():
-    shutil.rmtree(catalog)
-catalog.mkdir(parents=True)
-(catalog / "Contents.json").write_text(
-    json.dumps({"info": {"author": "xcode", "version": 1}}, indent=2),
-    encoding="utf-8",
-)
-for name in sorted(expected):
-    raw = base64.b64decode(data[name], validate=True)
-    if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise SystemExit(f"Decoded asset is not PNG: {name}")
-    image_set = catalog / f"{name}.imageset"
-    image_set.mkdir()
-    png = image_set / f"{name}.png"
-    png.write_bytes(raw)
-    (image_set / "Contents.json").write_text(
-        json.dumps({
-            "images": [{"filename": png.name, "idiom": "universal", "scale": "1x"}],
-            "info": {"author": "xcode", "version": 1},
-        }, indent=2),
-        encoding="utf-8",
-    )
-    print(f"Materialized {name}: {len(raw)} bytes")
-print(f"Materialized {len(expected)} generated assets in {catalog}")
+source_dir = Path(sys.argv[1])
+asset = sys.argv[2]
+target = Path(sys.argv[3])
+parts = sorted(source_dir.glob(f"{asset}.png.b64.part*"))
+if parts:
+    text = "".join(part.read_text(encoding="utf-8") for part in parts)
+    label = "+".join(part.name for part in parts)
+else:
+    source = source_dir / f"{asset}.png.b64"
+    if not source.exists():
+        raise SystemExit(f"Missing generated asset source: {source}")
+    text = source.read_text(encoding="utf-8")
+    label = source.name
+text = "".join(text.split())
+raw = base64.b64decode(text, validate=True)
+if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
+    raise SystemExit(f"Decoded file is not PNG: {asset}")
+target.write_bytes(raw)
+print(f"Decoded {asset} from {label}: {len(raw)} bytes")
 PY
+
+  normalize_arguments+=("$raw_output" "$normalized_output")
+  cat > "$setdir/Contents.json" <<JSON
+{
+  "images" : [
+    {
+      "filename" : "${asset}.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
+JSON
+done
+
+xcrun swift "$ROOT/Scripts/NormalizePNG.swift" "${normalize_arguments[@]}"
+for asset in "${ASSETS[@]}"; do
+  test -s "$CATALOG/${asset}.imageset/${asset}.png"
+done
+
+echo "Materialized ${#ASSETS[@]} generated image assets in $CATALOG"
