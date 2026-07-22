@@ -103,25 +103,25 @@ private struct CompactResourcePill: View {
 
 struct ResponsiveGreetingBanner: View {
     var body: some View {
-        HStack(alignment: .center, spacing: 6) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 5) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text("안녕하세요,")
-                    .font(.app(18, weight: .bold))
+                    .font(.app(17.5, weight: .bold))
                     .foregroundStyle(AppColor.ink)
                 Text("오늘도 작은 모험을\n시작해볼까요?")
-                    .font(.app(16.5, weight: .medium))
+                    .font(.app(15.5, weight: .medium))
                     .foregroundStyle(AppColor.ink)
-                    .lineSpacing(3)
+                    .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: 164, alignment: .leading)
+            .frame(width: 158, alignment: .leading)
 
             Spacer(minLength: 0)
 
             MascotSceneArt()
-                .frame(width: 186, height: 108)
+                .frame(width: 172, height: 96)
                 .allowsHitTesting(false)
         }
-        .frame(height: 112)
+        .frame(height: 98)
     }
 }
