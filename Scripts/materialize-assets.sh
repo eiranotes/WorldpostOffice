@@ -4,6 +4,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE="$ROOT/AssetSources"
 CATALOG="$ROOT/WorldPostOfficeHome/Assets.xcassets"
+RAW_DIR="$(mktemp -d)"
+trap 'rm -rf "$RAW_DIR"' EXIT
+
+ASSETS=(
+  HeartEnvelope
+  MascotPostman
+  PlantPolaroid
+  ProfileCatAvatar
+  TokyoPostcard
+  TravelerRabbitAvatar
+)
 
 mkdir -p "$CATALOG"
 cat > "$CATALOG/Contents.json" <<'JSON'
@@ -15,12 +26,15 @@ cat > "$CATALOG/Contents.json" <<'JSON'
 }
 JSON
 
-for asset in HeartEnvelope MascotPostman PlantPolaroid ProfileCatAvatar TokyoPostcard TravelerRabbitAvatar; do
+normalize_arguments=()
+
+for asset in "${ASSETS[@]}"; do
   setdir="$CATALOG/${asset}.imageset"
-  output="$setdir/${asset}.png"
+  raw_output="$RAW_DIR/${asset}.png"
+  normalized_output="$setdir/${asset}.png"
   mkdir -p "$setdir"
 
-  python3 - "$SOURCE" "$asset" "$output" <<'PY'
+  python3 - "$SOURCE" "$asset" "$raw_output" <<'PY'
 import base64
 from pathlib import Path
 import sys
@@ -45,14 +59,15 @@ except Exception as exc:
 if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
     raise SystemExit(f"Decoded file is not PNG: {asset}, bytes={len(raw)}")
 target.write_bytes(raw)
-print(f"Wrote {target.name}: {len(raw)} bytes")
+print(f"Wrote raw {target.name}: {len(raw)} bytes")
 PY
+
+  normalize_arguments+=("$raw_output" "$normalized_output")
 
   cat > "$setdir/Contents.json" <<JSON
 {
   "images" : [
     {
-      "filename" : "${asset}.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -61,6 +76,7 @@ PY
       "scale" : "2x"
     },
     {
+      "filename" : "${asset}.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
@@ -74,4 +90,6 @@ JSON
 
 done
 
-echo "Materialized generated PNG assets in $CATALOG"
+xcrun swift "$ROOT/Scripts/NormalizePNG.swift" "${normalize_arguments[@]}"
+
+echo "Materialized normalized RGBA PNG assets in $CATALOG"
