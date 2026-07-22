@@ -14,7 +14,10 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - path: WorldPostOfficeHome
+      - path: WorldPostOfficeHome/App
+      - path: WorldPostOfficeHome/Rebuilt/DesignTokensV2.swift
+      - path: WorldPostOfficeHome/Rebuilt/FinalHomeV3.swift
+      - path: WorldPostOfficeHome/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.eiraworks.WorldPostOfficeHome

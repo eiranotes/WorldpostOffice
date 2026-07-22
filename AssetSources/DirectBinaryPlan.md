@@ -1,0 +1,1 @@
+Direct Git blob upload is used for final generated PNG assets. Temporary Base64 staging files are not part of the app target.

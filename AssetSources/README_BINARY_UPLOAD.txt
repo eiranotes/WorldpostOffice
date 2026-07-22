@@ -1,0 +1,1 @@
+Final PNG files will be committed as binary git blobs; this text file is only an audit marker.
