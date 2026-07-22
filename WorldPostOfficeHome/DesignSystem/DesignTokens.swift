@@ -21,11 +21,11 @@ enum AppColor {
 }
 
 enum AppMetric {
-    static let screenHorizontal: CGFloat = 14
-    static let cardRadius: CGFloat = 22
+    static let screenHorizontal: CGFloat = 12
+    static let cardRadius: CGFloat = 21
     static let smallRadius: CGFloat = 13
     static let controlRadius: CGFloat = 17
-    static let tabBarHeight: CGFloat = 72
+    static let tabBarHeight: CGFloat = 70
 }
 
 extension Font {
