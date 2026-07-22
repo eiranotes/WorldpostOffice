@@ -1,18 +1,14 @@
-PROJECT := WorldPostOfficeHome.xcodeproj
-SCHEME := WorldPostOfficeHome
+.PHONY: generate assets test clean
 
-.PHONY: generate open test
+assets:
+	bash Scripts/materialize-assets.sh
 
-generate:
+generate: assets
 	xcodegen generate
 
-open: generate
-	open $(PROJECT)
-
 test: generate
-	xcodebuild \
-		-project $(PROJECT) \
-		-scheme $(SCHEME) \
-		-destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-		CODE_SIGNING_ALLOWED=NO \
-		test
+	xcodebuild -project WorldPostOfficeHome.xcodeproj -scheme WorldPostOfficeHome -destination 'platform=iOS Simulator,name=iPhone 16 Pro' CODE_SIGNING_ALLOWED=NO test
+
+clean:
+	rm -rf WorldPostOfficeHome.xcodeproj DerivedData TestResults.xcresult
+	rm -rf WorldPostOfficeHome/Assets.xcassets
