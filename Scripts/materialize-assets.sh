@@ -2,19 +2,44 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE="$ROOT/AssetSources"
+SOURCE="$ROOT/AssetSources/GeneratedAssetsHQ.zip.b64"
 CATALOG="$ROOT/WorldPostOfficeHome/Assets.xcassets"
-RAW_DIR="$(mktemp -d)"
-trap 'rm -rf "$RAW_DIR"' EXIT
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
 
 ASSETS=(
+  BunnyAvatar
+  EnergyStamp
   HeartEnvelope
-  MascotPostman
+  HeroScene
   PlantPolaroid
   ProfileCatAvatar
+  QuickChecklist
+  QuickGift
+  QuickShop
+  QuickStampAlbum
   TokyoPostcard
-  TravelerRabbitAvatar
 )
+
+python3 - "$SOURCE" "$WORK_DIR/assets.zip" "$WORK_DIR/extracted" <<'PY'
+import base64
+from pathlib import Path
+import sys
+import zipfile
+
+source = Path(sys.argv[1])
+archive = Path(sys.argv[2])
+output = Path(sys.argv[3])
+text = ''.join(source.read_text(encoding='utf-8').split())
+raw = base64.b64decode(text, validate=True)
+if not raw.startswith(b'PK'):
+    raise SystemExit('Generated asset bundle is not a ZIP archive')
+archive.write_bytes(raw)
+output.mkdir(parents=True, exist_ok=True)
+with zipfile.ZipFile(archive) as bundle:
+    bundle.extractall(output)
+print(f'Decoded high-quality generated asset bundle: {len(raw)} bytes')
+PY
 
 rm -rf "$CATALOG"
 mkdir -p "$CATALOG"
@@ -29,38 +54,12 @@ JSON
 
 normalize_arguments=()
 for asset in "${ASSETS[@]}"; do
+  input="$WORK_DIR/extracted/${asset}.png"
   setdir="$CATALOG/${asset}.imageset"
-  raw_output="$RAW_DIR/${asset}.png"
-  normalized_output="$setdir/${asset}.png"
+  output="$setdir/${asset}.png"
+  test -s "$input"
   mkdir -p "$setdir"
-
-  python3 - "$SOURCE" "$asset" "$raw_output" <<'PY'
-import base64
-from pathlib import Path
-import sys
-
-source_dir = Path(sys.argv[1])
-asset = sys.argv[2]
-target = Path(sys.argv[3])
-parts = sorted(source_dir.glob(f"{asset}.png.b64.part*"))
-if parts:
-    text = "".join(part.read_text(encoding="utf-8") for part in parts)
-    label = "+".join(part.name for part in parts)
-else:
-    source = source_dir / f"{asset}.png.b64"
-    if not source.exists():
-        raise SystemExit(f"Missing generated asset source: {source}")
-    text = source.read_text(encoding="utf-8")
-    label = source.name
-text = "".join(text.split())
-raw = base64.b64decode(text, validate=True)
-if not raw.startswith(b"\x89PNG\r\n\x1a\n"):
-    raise SystemExit(f"Decoded file is not PNG: {asset}")
-target.write_bytes(raw)
-print(f"Decoded {asset} from {label}: {len(raw)} bytes")
-PY
-
-  normalize_arguments+=("$raw_output" "$normalized_output")
+  normalize_arguments+=("$input" "$output")
   cat > "$setdir/Contents.json" <<JSON
 {
   "images" : [
@@ -83,4 +82,4 @@ for asset in "${ASSETS[@]}"; do
   test -s "$CATALOG/${asset}.imageset/${asset}.png"
 done
 
-echo "Materialized ${#ASSETS[@]} generated image assets in $CATALOG"
+echo "Materialized ${#ASSETS[@]} high-quality generated image assets in $CATALOG"
