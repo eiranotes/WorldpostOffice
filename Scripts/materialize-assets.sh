@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE="$ROOT/AssetSources/GeneratedAssetsHQ.zip.b64"
+SOURCE_DIR="$ROOT/AssetSources"
 CATALOG="$ROOT/WorldPostOfficeHome/Assets.xcassets"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -21,22 +21,38 @@ ASSETS=(
   TokyoPostcard
 )
 
-python3 - "$SOURCE" "$WORK_DIR/assets.zip" "$WORK_DIR/extracted" <<'PY'
+python3 - "$SOURCE_DIR" "$WORK_DIR/assets.zip" "$WORK_DIR/extracted" <<'PY'
 import base64
 from pathlib import Path
 import sys
 import zipfile
 
-source = Path(sys.argv[1])
+source_dir = Path(sys.argv[1])
 archive = Path(sys.argv[2])
 output = Path(sys.argv[3])
-text = ''.join(source.read_text(encoding='utf-8').split())
+parts = sorted(source_dir.glob('GeneratedAssetsHQ.zip.b64.part*'))
+if not parts:
+    raise SystemExit('No high-quality generated asset bundle parts were found')
+
+chunks = []
+for part in parts:
+    chunk = ''.join(part.read_text(encoding='utf-8').split())
+    print(f'{part.name}: {len(chunk)} base64 chars')
+    chunks.append(chunk)
+text = ''.join(chunks)
+expected_chars = 180_644
+print(f'Combined bundle length: {len(text)} base64 chars')
+if len(text) != expected_chars:
+    raise SystemExit(f'Unexpected bundle length: expected {expected_chars}, got {len(text)}')
+
 raw = base64.b64decode(text, validate=True)
 if not raw.startswith(b'PK'):
     raise SystemExit('Generated asset bundle is not a ZIP archive')
 archive.write_bytes(raw)
 output.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(archive) as bundle:
+    names = sorted(bundle.namelist())
+    print('ZIP members: ' + ', '.join(names))
     bundle.extractall(output)
 print(f'Decoded high-quality generated asset bundle: {len(raw)} bytes')
 PY
