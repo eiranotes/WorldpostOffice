@@ -41,6 +41,9 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Materialize generated image assets
+        run: bash Scripts/materialize-assets.sh
+
       - name: Generate Xcode project and shared scheme
         run: |
           xcodegen generate
