@@ -1,0 +1,16 @@
+{
+  "reference": "DesignAssets/References/HomeReference.webp",
+  "assets": [
+    "DesignAssets/Generated/App/BunnyAvatar.png",
+    "DesignAssets/Generated/App/EnergyStamp.png",
+    "DesignAssets/Generated/App/HeartEnvelope.png",
+    "DesignAssets/Generated/App/HeroScene.png",
+    "DesignAssets/Generated/App/PlantPolaroid.png",
+    "DesignAssets/Generated/App/ProfileCatAvatar.png",
+    "DesignAssets/Generated/App/QuickChecklist.png",
+    "DesignAssets/Generated/App/QuickGift.png",
+    "DesignAssets/Generated/App/QuickShop.png",
+    "DesignAssets/Generated/App/QuickStampAlbum.png",
+    "DesignAssets/Generated/App/TokyoPostcard.png"
+  ]
+}
