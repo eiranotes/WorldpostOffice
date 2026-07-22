@@ -173,18 +173,15 @@ jobs:
               --format json > test-summary.json || true
           fi
 
-      - name: Upload Xcode diagnostics
+      - name: Upload visual verification artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ci-diagnostics
+          name: ios-home-visual
           path: |
             asset-materialization.log
-            build.log
-            test.log
             screenshot.log
             test-summary.json
-            TestResults.xcresult
-            Screenshots/*.png
-          if-no-files-found: warn
+            Screenshots/home.png
+          if-no-files-found: error
           retention-days: 14
