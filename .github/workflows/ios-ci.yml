@@ -42,7 +42,9 @@ jobs:
         run: brew install xcodegen
 
       - name: Materialize generated image assets
-        run: bash Scripts/materialize-assets.sh
+        run: |
+          set -o pipefail
+          bash Scripts/materialize-assets.sh 2>&1 | tee asset-materialization.log
 
       - name: Generate Xcode project and shared scheme
         run: |
@@ -177,6 +179,7 @@ jobs:
         with:
           name: ios-ci-diagnostics
           path: |
+            asset-materialization.log
             build.log
             test.log
             screenshot.log
