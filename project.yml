@@ -15,7 +15,8 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: WorldPostOfficeHome/App
-      - path: WorldPostOfficeHome/Rebuilt
+      - path: WorldPostOfficeHome/Rebuilt/DesignTokensV2.swift
+      - path: WorldPostOfficeHome/Rebuilt/FinalHomeV3.swift
       - path: WorldPostOfficeHome/Assets.xcassets
     settings:
       base:
