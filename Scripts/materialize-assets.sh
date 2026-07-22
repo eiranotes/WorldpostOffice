@@ -14,6 +14,14 @@ ASSETS=(
   ProfileCatAvatar
   TokyoPostcard
   TravelerRabbitAvatar
+  HomeHeroScene
+  HomePlantPolaroid
+  HomeTokyoPostcard
+  HomeEnergyStamp
+  HomeQuickChecklist
+  HomeQuickStampAlbum
+  HomeQuickGift
+  HomeQuickShop
 )
 
 mkdir -p "$CATALOG"
@@ -32,6 +40,7 @@ for asset in "${ASSETS[@]}"; do
   setdir="$CATALOG/${asset}.imageset"
   raw_output="$RAW_DIR/${asset}.png"
   normalized_output="$setdir/${asset}.png"
+  rm -rf "$setdir"
   mkdir -p "$setdir"
 
   python3 - "$SOURCE" "$asset" "$raw_output" <<'PY'
