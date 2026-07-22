@@ -12,7 +12,7 @@ struct HomeView: View {
                     PrimaryQuestCard()
                     EnergyProgressCard()
                     ActiveExchangeCard()
-                    QuickActionsRow()
+                    QuickActionsRowV2()
                 }
                 .padding(.horizontal, AppMetric.horizontal)
                 .padding(.top, 7)
