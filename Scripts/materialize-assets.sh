@@ -16,26 +16,34 @@ cat > "$CATALOG/Contents.json" <<'JSON'
 JSON
 
 for asset in HeartEnvelope MascotPostman PlantPolaroid ProfileCatAvatar TokyoPostcard TravelerRabbitAvatar; do
-  encoded="$SOURCE/${asset}.png.b64"
   setdir="$CATALOG/${asset}.imageset"
   output="$setdir/${asset}.png"
   mkdir -p "$setdir"
 
-  echo "Decoding ${asset} ($(wc -c < "$encoded" | tr -d ' ') chars)"
-  python3 - "$encoded" "$output" <<'PY'
+  python3 - "$SOURCE" "$asset" "$output" <<'PY'
 import base64
 from pathlib import Path
 import sys
 
-source = Path(sys.argv[1])
-target = Path(sys.argv[2])
-text = ''.join(source.read_text(encoding='utf-8').split())
+source_dir = Path(sys.argv[1])
+asset = sys.argv[2]
+target = Path(sys.argv[3])
+parts = sorted(source_dir.glob(f"{asset}.png.b64.part*"))
+if parts:
+    text = ''.join(part.read_text(encoding='utf-8') for part in parts)
+    label = '+'.join(part.name for part in parts)
+else:
+    source = source_dir / f"{asset}.png.b64"
+    text = source.read_text(encoding='utf-8')
+    label = source.name
+text = ''.join(text.split())
+print(f"Decoding {asset} from {label} ({len(text)} chars)")
 try:
     raw = base64.b64decode(text, validate=True)
 except Exception as exc:
-    raise SystemExit(f"Invalid Base64 in {source.name}: {exc}")
+    raise SystemExit(f"Invalid Base64 for {asset}: {exc}")
 if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
-    raise SystemExit(f"Decoded file is not PNG: {source.name}, bytes={len(raw)}")
+    raise SystemExit(f"Decoded file is not PNG: {asset}, bytes={len(raw)}")
 target.write_bytes(raw)
 print(f"Wrote {target.name}: {len(raw)} bytes")
 PY
