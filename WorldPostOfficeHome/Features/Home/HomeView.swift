@@ -7,7 +7,7 @@ struct HomeView: View {
                 .ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: 12) {
+                LazyVStack(spacing: 9) {
                     ResponsiveUserHeaderView()
                     ResponsiveGreetingBanner()
                     PrimaryQuestCard()
@@ -16,8 +16,8 @@ struct HomeView: View {
                     QuickActionsRow()
                 }
                 .padding(.horizontal, AppMetric.screenHorizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 14)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
             }
             .scrollBounceBehavior(.basedOnSize)
         }
